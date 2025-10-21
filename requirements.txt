@@ -7,3 +7,5 @@ pydub
 SpeechRecognition
 pyttsx3
 torch
+nltk
+numpy
