@@ -38,15 +38,29 @@ def load_translation_model():
 
 @st.cache_resource(show_spinner=False)
 def load_qg_model():
+    import time
+    from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, pipeline
+
     qg_model_name = "mrm8488/t5-base-finetuned-question-generation-ap"
-    qg_tokenizer = AutoTokenizer.from_pretrained(qg_model_name)
-    qg_model = AutoModelForSeq2SeqLM.from_pretrained(qg_model_name)
-    return pipeline(
-        "text2text-generation",
-        model=qg_model,
-        tokenizer=qg_tokenizer,
-        device=-1,
-    )
+    retries = 3
+    for attempt in range(retries):
+        try:
+            st.write(f"Loading QG model (attempt {attempt+1})...")
+            qg_tokenizer = AutoTokenizer.from_pretrained(qg_model_name, trust_remote_code=True)
+            qg_model = AutoModelForSeq2SeqLM.from_pretrained(
+                qg_model_name, trust_remote_code=True, timeout=60
+            )
+            return pipeline(
+                "text2text-generation",
+                model=qg_model,
+                tokenizer=qg_tokenizer,
+                device=-1,
+            )
+        except Exception as e:
+            st.warning(f"Attempt {attempt+1} failed: {e}")
+            time.sleep(5)  # wait 5 seconds before retrying
+    st.error("Failed to load QG model after 3 attempts.")
+    st.stop()
 
 # ────────────────────────────────────────────────────────────────
 # Input
@@ -184,14 +198,5 @@ if st.button("🔊 Play Questions (TTS)"):
             st.audio(tmp.name)
     except Exception as e:
         st.error(f"TTS error: {e}")
-        
-from transformers import AutoModelForSeq2SeqLM
-
-qg_model_name = "some-model-name"
-qg_model = AutoModelForSeq2SeqLM.from_pretrained(
-    qg_model_name,
-    trust_remote_code=True,
-    timeout=60  # increase timeout from 10s to 60s
-)
 
 st.success("✅ Done")
