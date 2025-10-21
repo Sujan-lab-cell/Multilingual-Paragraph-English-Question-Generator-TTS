@@ -12,6 +12,7 @@ from gtts import gTTS
 import tempfile, os, re
 from pydub import AudioSegment
 import speech_recognition as sr
+import time
 
 st.set_page_config(page_title="Multilingual QG", layout="wide")
 st.title("🌍 Multilingual Paragraph → English + Question Generator + TTS")
@@ -23,7 +24,7 @@ use_speech = st.sidebar.checkbox("🎤 Use microphone (speech input)", value=Fal
 question_types = st.sidebar.multiselect(
     "Select question types to keep:",
     ["Who", "What", "When", "Where", "Why", "How", "Which"],
-    default=["Who", "What", "When", "Where", "Why", ],
+    default=["Who", "What", "When", "Where", "Why"],
 )
 tts_engine = st.sidebar.selectbox("Text-to-Speech engine", ["gTTS", "pyttsx3"], index=0)
 
@@ -31,15 +32,27 @@ tts_engine = st.sidebar.selectbox("Text-to-Speech engine", ["gTTS", "pyttsx3"], 
 # Cached models
 @st.cache_resource(show_spinner=False)
 def load_translation_model():
+    # Set Hugging Face download timeout
+    os.environ["HF_HUB_DOWNLOAD_TIMEOUT"] = "60"
     model_name = "facebook/m2m100_418M"
-    tokenizer = M2M100Tokenizer.from_pretrained(model_name)
-    model = M2M100ForConditionalGeneration.from_pretrained(model_name)
-    return model, tokenizer
+    retries = 3
+    for attempt in range(retries):
+        try:
+            st.write(f"Loading translation model (attempt {attempt+1})...")
+            tokenizer = M2M100Tokenizer.from_pretrained(model_name)
+            model = M2M100ForConditionalGeneration.from_pretrained(model_name)
+            return model, tokenizer
+        except Exception as e:
+            st.warning(f"Attempt {attempt+1} failed: {e}")
+            time.sleep(5)
+    st.error("Failed to load translation model after 3 attempts.")
+    st.stop()
+
 
 @st.cache_resource(show_spinner=False)
 def load_qg_model():
-    import time
-    from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, pipeline
+    # Set Hugging Face download timeout
+    os.environ["HF_HUB_DOWNLOAD_TIMEOUT"] = "60"
 
     qg_model_name = "mrm8488/t5-base-finetuned-question-generation-ap"
     retries = 3
@@ -48,7 +61,7 @@ def load_qg_model():
             st.write(f"Loading QG model (attempt {attempt+1})...")
             qg_tokenizer = AutoTokenizer.from_pretrained(qg_model_name, trust_remote_code=True)
             qg_model = AutoModelForSeq2SeqLM.from_pretrained(
-                qg_model_name, trust_remote_code=True, timeout=60
+                qg_model_name, trust_remote_code=True
             )
             return pipeline(
                 "text2text-generation",
@@ -58,7 +71,7 @@ def load_qg_model():
             )
         except Exception as e:
             st.warning(f"Attempt {attempt+1} failed: {e}")
-            time.sleep(5)  # wait 5 seconds before retrying
+            time.sleep(5)
     st.error("Failed to load QG model after 3 attempts.")
     st.stop()
 
@@ -116,7 +129,6 @@ if lang not in ["en", "unknown"]:
     tgt_lang = "en"
 
     try:
-        # Get target language id robustly
         if hasattr(translation_tokenizer, "get_lang_id"):
             forced_bos_id = translation_tokenizer.get_lang_id(tgt_lang)
         else:
@@ -124,7 +136,6 @@ if lang not in ["en", "unknown"]:
                 tgt_lang, translation_tokenizer.lang_code_to_id.get(tgt_lang.lower())
             )
 
-        # Set source language
         try:
             translation_tokenizer.src_lang = src_lang
         except Exception:
@@ -145,19 +156,29 @@ if lang not in ["en", "unknown"]:
         st.warning(f"Translation failed: {e}. Using original text.")
         translated_text = text
 
-st.markdown("### English Text (translated if needed):")
+st.markdown("### English Text :")
 st.write(translated_text)
 
 # ────────────────────────────────────────────────────────────────
 # 3️⃣ Question Generation
 qg_pipeline = load_qg_model()
-num_qs = st.sidebar.slider("Number of questions to generate", 1, 10, 3)
+num_qs = st.sidebar.slider("Number of questions to generate", 1, 10, 5)
 prompt = f"generate {num_qs} questions: {translated_text}"
 
 with st.spinner("Generating questions..."):
-    out = qg_pipeline(prompt, max_length=256, num_return_sequences=1)[0]["generated_text"]
+    outputs = qg_pipeline(
+    prompt,
+    max_length=128,
+    num_beams=5,          # change this to 5 or more
+    num_return_sequences=5,
+    clean_up_tokenization_spaces=True
+)
 
-raw_qs = re.split(r"\n|(?<=[?])\s+", out.strip())
+
+# Collect all generated questions
+raw_qs = []
+for o in outputs:
+    raw_qs += re.split(r"\n|(?<=[?])\s+", o["generated_text"].strip())
 
 def filter_by_type(q):
     qlow = q.strip().lower()
