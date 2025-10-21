@@ -1,0 +1,9 @@
+streamlit
+transformers
+sentencepiece
+langdetect
+gTTS
+pydub
+SpeechRecognition
+pyttsx3
+torch
