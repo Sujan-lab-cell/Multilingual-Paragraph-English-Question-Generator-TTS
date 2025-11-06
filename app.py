@@ -15,8 +15,8 @@ import speech_recognition as sr
 
 # ────────────────────────────────────────────────────────────────
 # Page setup
-st.set_page_config(page_title="Multilingual QG", layout="wide")
-st.title("🌍 Multilingual Paragraph → English + Question Generator + TTS")
+st.set_page_config(page_title="AskMyText.com", layout="wide")
+st.title("🌍 InsightQ Engine")
 
 # ────────────────────────────────────────────────────────────────
 # Sidebar
