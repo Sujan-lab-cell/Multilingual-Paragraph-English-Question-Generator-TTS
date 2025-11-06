@@ -15,13 +15,13 @@ import speech_recognition as sr
 
 # ────────────────────────────────────────────────────────────────
 # Page setup
-st.set_page_config(page_title="AskMyText.com", layout="wide")
+st.set_page_config(page_title="TextLearn Studio", layout="wide")
 st.title("🌍 InsightQ Engine")
 
 # ────────────────────────────────────────────────────────────────
 # Sidebar
 st.sidebar.header("Options")
-use_speech = st.sidebar.checkbox("🎤 Use microphone (speech input)", value=False)
+use_speech = st.sidebar.checkbox("🎤 Use microphone", value=False)
 question_types = st.sidebar.multiselect(
     "Select question types to keep:",
     ["Who", "When", "Where", "Why", "How", "Which"," Whose"," Whom"," Can", " Could", " Will", " Would", " Is", " Are", " Do", " Does", " Did", " How much", " How many", " How long", " How often", " What kind", " Other"],
@@ -41,14 +41,18 @@ def load_translation_model():
 
 @st.cache_resource(show_spinner=False)
 def load_qg_model():
-    # Better model for WH-type question generation
-    qg_model_name = "valhalla/t5-base-qg-hl"
+    # Better model for Any-type question generation
+    qg_model_name = "iarfmoose/t5-base-question-generator"
     qg_tokenizer = AutoTokenizer.from_pretrained(qg_model_name)
     qg_model = AutoModelForSeq2SeqLM.from_pretrained(qg_model_name)
     return pipeline(
         "text2text-generation",
         model=qg_model,
         tokenizer=qg_tokenizer,
+        do_sample=True, 
+        top_k=50,
+        top_p=0.9,
+        temperature=0.8,
         device=-1,
     )
 
@@ -142,7 +146,7 @@ qg_pipeline = load_qg_model()
 num_qs = st.sidebar.slider("Number of questions to generate", 1, 10, 5)
 
 # Use proper "context:" prefix for cleaner question generation
-prompt = f"context: {translated_text}"
+prompt = f"Generate a diverse set of questions of different types (yes/no, explanation, opinion, reasoning, and WH) based on the following text:\n\n{translated_text}"
 
 with st.spinner("Generating questions..."):
     out = qg_pipeline(
