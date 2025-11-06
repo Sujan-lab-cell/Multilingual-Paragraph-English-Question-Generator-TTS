@@ -146,7 +146,8 @@ qg_pipeline = load_qg_model()
 num_qs = st.sidebar.slider("Number of questions to generate", 1, 10, 5)
 
 # Use proper "context:" prefix for cleaner question generation
-prompt = f"Generate a diverse set of questions of different types (yes/no, explanation, opinion, reasoning, and WH) based on the following text:\n\n{translated_text}"
+prompt = f"Generate a diverse set of questions of different types
+(yes/no, explanation, opinion, reasoning, and WH) based on the following text:\n\n{translated_text}"
 
 with st.spinner("Generating questions..."):
     out = qg_pipeline(
