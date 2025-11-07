@@ -1,0 +1,5 @@
+{
+  "input_text": "The server restarted unexpectedly due to a high memory load. Several users reported slow performance before the restart. The logs indicate an increase in CPU temperature.\n",
+  "detected_language": "en",
+  "questions": []
+}
