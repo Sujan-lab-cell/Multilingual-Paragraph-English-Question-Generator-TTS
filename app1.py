@@ -32,7 +32,7 @@ except LookupError:
 st.set_page_config(page_title="NLP QG App", layout="centered")
 st.title("📚 NLP: Audio/Text → Translate → Question Generation → TTS")
 st.markdown(
-    "This app accepts audio or text (500+ words recommended), auto-detects language, translates to English if needed, generates questions from the text and provides TTS for original text and generated questions.\n\nNow with inline TTS players for the input text and each generated question."
+    "This app accepts audio or text (500+ words recommended), auto-detects language, translates to English if needed, generates questions from the text and provides TTS for original text and generated questions.Now with inline TTS players for the input text and each generated question."
 )
 
 # Sidebar settings
@@ -213,7 +213,7 @@ if process:
 
             # Play all questions button
             if st.button("🔊 Play all questions", key="play_all_qs"):
-                all_q = '\n'.join([f"{i+1}. {q}" for i,q in enumerate(questions)])
+                all_q = ''.join([f"{i+1}. {q}" for i,q in enumerate(questions)])
                 tts_all_path = generate_tts_file(all_q, lang='en', filename_prefix='questions_all_')
                 if tts_all_path:
                     st.audio(tts_all_path)
@@ -237,13 +237,13 @@ if process:
                 if tts_path:
                     st.audio(tts_path)
             if st.button("Generate TTS for questions (bulk)", key="bulk_q_tts"):
-                all_q = '\n'.join([f"{i+1}. {q}" for i,q in enumerate(questions)])
+                all_q = ''.join([f"{i+1}. {q}" for i,q in enumerate(questions)])
                 tts_q_path = generate_tts_file(all_q, filename_prefix='questions_')
                 if tts_q_path:
                     st.audio(tts_q_path)
 
             # Allow download of questions as txt
-            if st.download_button("Download questions (.txt)", data='\n'.join(questions), file_name='questions.txt'):
+            if st.download_button("Download questions (.txt)", data=''.join(questions), file_name='questions.txt'):
                 st.success("Downloaded!")
         else:
             st.warning("No questions were generated. Try a longer or clearer text, or change the model in settings.")
@@ -253,3 +253,4 @@ st.caption("Tip: For better question generation, provide well-formed paragraphs 
 
 
 # End of file
+
